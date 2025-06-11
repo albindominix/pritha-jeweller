@@ -286,7 +286,7 @@ export default function GoldCalculator() {
             <Input
               id="goldRate"
               type="number"
-              value={!!goldRatePerGram?goldRatePerGram:''}
+              value={!!goldRatePerGram?goldRatePerGram.toFixed(2):''}
               onChange={(e) => {
                 const value = Number(e.target.value)
                 setGoldRatePerGram(value)

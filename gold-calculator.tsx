@@ -61,13 +61,14 @@ export default function GoldCalculator() {
   }, [])
 
   // Calculate gold rate per gram based on purity
-  useEffect(() => {
-    if (goldRate > 0) {
-      const purityFactor = Number(goldPurity) / 24
-      const ratePerGram = (goldRate / 31.1035) * purityFactor
-      setGoldRatePerGram(ratePerGram.toFixed(2))
-    }
-  }, [goldPurity, goldRate])
+useEffect(() => {
+  if (goldRate > 0) {
+    const purityFactor = Number(goldPurity) / 24;
+    const ratePerGram = (goldRate / 31.1035) * purityFactor;
+    // Convert to string with 2 decimal places, then parse back to a number
+    setGoldRatePerGram(parseFloat(ratePerGram.toFixed(2)));
+  }
+}, [goldPurity, goldRate]);
 
   // Calculate total cost
   const calculateTotalCost = () => {

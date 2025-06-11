@@ -65,7 +65,7 @@ export default function GoldCalculator() {
     if (goldRate > 0) {
       const purityFactor = Number(goldPurity) / 24
       const ratePerGram = (goldRate / 31.1035) * purityFactor
-      setGoldRatePerGram(ratePerGram)
+      setGoldRatePerGram(ratePerGram.toFixed(2))
     }
   }, [goldPurity, goldRate])
 
@@ -286,7 +286,7 @@ export default function GoldCalculator() {
             <Input
               id="goldRate"
               type="number"
-              value={!!goldRatePerGram?goldRatePerGram.toFixed(2):''}
+              value={!!goldRatePerGram?goldRatePerGram:''}
               onChange={(e) => {
                 const value = Number(e.target.value)
                 setGoldRatePerGram(value)

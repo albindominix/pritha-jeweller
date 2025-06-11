@@ -11,24 +11,62 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 
 export default function GoldCalculator() {
-  // Default gold rate in INR per troy ounce (31.1035 grams)
-  const defaultGoldRate = 285179.9
-
   // State variables
   const [goldWeight, setGoldWeight] = useState<number | "">("")
   const [goldPurity, setGoldPurity] = useState("24")
-  const [goldRate, setGoldRate] = useState<number>(defaultGoldRate)
-  const [goldRatePerGram, setGoldRatePerGram] = useState<number>(defaultGoldRate / 31.1035)
+  const [goldRate, setGoldRate] = useState<number>(0)
+  const [goldRatePerGram, setGoldRatePerGram] = useState<number>(0)
   const [makingCharge, setMakingCharge] = useState<number | "">("")
   const [makingChargeType, setMakingChargeType] = useState<"percentage" | "fixed">("percentage")
   const [totalCost, setTotalCost] = useState<number | "">("")
   const [calculationMode, setCalculationMode] = useState<"totalCost" | "makingCharge">("totalCost")
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [exchangeRate, setExchangeRate] = useState<number>(0)
+
+  // Fetch gold rate and exchange rate from APIs
+  useEffect(() => {
+    const fetchRates = async () => {
+      try {
+        // Fetch exchange rate
+        const exchangeResponse = await fetch("https://api.fxratesapi.com/latest")
+        if (!exchangeResponse.ok) {
+          throw new Error("Failed to fetch exchange rate")
+        }
+        const exchangeData = await exchangeResponse.json()
+        setExchangeRate(exchangeData.rates.INR)
+
+        // Fetch gold rate
+        const goldResponse = await fetch("https://api.gold-api.com/price/XAU")
+        if (!goldResponse.ok) {
+          throw new Error("Failed to fetch gold rate")
+        }
+        const goldData = await goldResponse.json()
+        
+        // Convert USD to INR using the fetched exchange rate and calculate per gram rate
+        const rateInINR = goldData.price * exchangeData.rates.INR
+        setGoldRate(rateInINR)
+        setGoldRatePerGram(rateInINR / 31.1035)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "An error occurred")
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchRates()
+    // Refresh every 5 minutes
+    const interval = setInterval(fetchRates, 5 * 60 * 1000)
+    return () => clearInterval(interval)
+  }, [])
 
   // Calculate gold rate per gram based on purity
   useEffect(() => {
-    const purityFactor = Number(goldPurity) / 24
-    const ratePerGram = (goldRate / 31.1035) * purityFactor
-    setGoldRatePerGram(ratePerGram)
+    if (goldRate > 0) {
+      const purityFactor = Number(goldPurity) / 24
+      const ratePerGram = (goldRate / 31.1035) * purityFactor
+      setGoldRatePerGram(ratePerGram)
+    }
   }, [goldPurity, goldRate])
 
   // Calculate total cost
@@ -243,16 +281,29 @@ export default function GoldCalculator() {
           </div>
 
           <div className="grid gap-3">
-            <Label htmlFor="goldRate">Gold Rate (₹ per troy ounce)</Label>
+            <Label htmlFor="goldRate">Gold Rate (₹ per gram)</Label>
+      
             <Input
               id="goldRate"
               type="number"
-              value={goldRate}
-              onChange={(e) => setGoldRate(Number(e.target.value))}
-              placeholder="Enter current gold rate"
+              value={!!goldRatePerGram?goldRatePerGram:''}
+              onChange={(e) => {
+                const value = Number(e.target.value)
+                setGoldRatePerGram(value)
+                setGoldRate(value * 31.1035)
+              }}
+              placeholder="Enter current gold rate per gram"
             />
             <p className="text-xs text-muted-foreground">
-              Current rate: ₹{goldRatePerGram.toFixed(2)} per gram for {goldPurity}K gold
+              {isLoading ? (
+                <p className="text-muted-foreground">Loading current gold rate...</p>
+              ) : error ? (
+                <p className="text-red-500">Error: {error}</p>
+              ) : (
+                <p className="text-muted-foreground">
+                  Current Gold Rate: ₹{goldRatePerGram.toFixed(2)} per gram
+                </p>
+              )}
             </p>
           </div>
 
